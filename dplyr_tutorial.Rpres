@@ -1,0 +1,406 @@
+<style>
+  .reveal pre {
+    font-size: 13pt;
+  }
+  .reveal section p {
+    font-size: 32pt;
+  }
+  .reveal div {
+    font-size: 30pt;
+  }
+  .reveal h3 {
+    color: #484848;
+    font-weight: 150%;
+  }
+</style>
+
+Faster Data Manipulation with dplyr
+========================================================
+author: Gabriela de Queiroz
+date: 
+autosize: false
+font-family: 'Helvetica'
+width: 1340
+height: 900
+
+
+Before talking about dplyr let's ...
+========================================================
+Load the packages
+
+```{r}
+library(dplyr)
+library(nycflights13)
+```
+
+========================================================
+
+Take a look at the data we'll be using
+
+```{r}
+flights
+```
+
+========================================================
+## What can we see? 
+
+- How many observations and variables?
+
+- Can you notice any difference from the usual way of importing data to R? 
+
+========================================================
+Description of the data
+
+```{r}
+?flights
+```
+
+========================================================
+# Meet the new pipe operator
+
+<br></br>
+## Here’s what it looks like: `%>%`. 
+<br></br>
+The RStudio shortcut is: Ctrl + Shift + M (Windows), Cmd + Shift + M (Mac).
+<br></br>
+## In this tutorial I'll be using pipe all the time!
+
+========================================================
+## Pipe operator example
+
+```{r}
+flights %>% 
+	head()
+```
+
+========================================================
+## Why do we use dplyr?
+
+- Great for data exploration and transformation;
+- Intuitive to write and easy to read;
+- Fast on data frames.
+
+========================================================
+## The 5 main dplyr functions are all *single verbs*: 
+
+1) `filter()` - pick observations by their values
+
+2) `arrange()` - reorder the rows
+
+3) `select()` - pick variables by their names
+
+4) `mutate()` - create new variables with functions of existing variables
+
+5) `summarise()` - collapse many values down to a single summary
+
+========================================================
+## 1) Filter rows with `filter()`
+
+```{r}
+flights %>% 
+	filter(month == 2, day == 15)
+```
+
+========================================================
+
+```{r}
+flights %>% 
+	filter(month == 1 | month == 2)
+```
+
+========================================================
+
+### To select rows by position, use `slice()`:
+
+
+```{r}
+flights %>% 
+	slice(1:10)
+```
+
+========================================================
+## 2) Arrange rows with `arrange()`
+
+```{r}
+flights %>% 
+arrange(arr_time)
+```
+
+========================================================
+```{r}
+flights %>% 
+arrange(desc(arr_delay))
+```
+
+========================================================
+## 3) Select columns with `select()`
+
+```{r}
+flights %>% 
+select(year, month, day)
+```
+
+========================================================
+
+**Example**: How can we select all columns between year and day (inclusive)?
+
+========================================================
+
+```{r}
+flights %>% 
+	select(year:day)
+```
+
+========================================================
+
+**Example**: How can we select all columns ***except*** those from year to day (inclusive)?
+
+========================================================
+
+```{r}
+flights %>% 
+	select(-(year:day))
+```
+
+========================================================
+There are a number of helper functions you can use within select(), like: 
+
+- `starts_with()`
+- `ends_with()`
+- `matches()` 
+- `contains()`
+
+**See ?select for more details.**
+
+========================================================
+### You can rename variables with `select()`
+
+```{r}
+flights %>% 
+	select(tail_num = tailnum)
+```
+
+========================================================
+### But sometimes you just want to rename, without droping all the other variables
+
+```{r}
+flights %>% 
+	rename(tail_num = tailnum)
+```
+
+========================================================
+### Extract distinct (unique) rows
+
+```{r}
+flights %>% 
+	select(origin, dest) %>% 
+	distinct(origin, dest)
+```
+
+
+OR 
+
+```{r, eval=FALSE}
+flights %>% 
+	select(origin, dest) %>% 
+	distinct()
+```
+
+========================================================
+## 4) Add new columns with `mutate()`
+
+- Add new columns that are functions of existing columns.
+
+```{r}
+flights %>% 
+	mutate(gain = arr_delay - dep_delay,
+				 speed = distance / air_time * 60)
+```
+
+========================================================
+### If you only want to keep the new variables, use `transmute()`
+
+```{r}
+flights %>% 
+	transmute(gain = arr_delay - dep_delay,
+						gain_per_hour = gain / (air_time / 60)
+)
+```
+
+========================================================
+## 5) Summarise values with `summarise()`
+
+```{r}
+flights %>% 
+	summarise(delay = mean(dep_delay, na.rm = TRUE))
+```
+
+========================================================
+# Grouped operations
+
+In dplyr, you do this by with the `group_by()` function. It breaks down a dataset into specified groups of rows.
+
+========================================================
+
+**Example**: Complete each task:
+
+1) Split the complete dataset into individual planes (tailnum) 
+
+2) Summarise each plane by:
+- counting the number of flights (count = n())  
+- computing the average distance (dist = mean(Distance, na.rm = TRUE)) and arrival delay (delay = mean(ArrDelay, na.rm = TRUE))
+
+
+========================================================
+
+```{r}
+flights %>%  
+	group_by(tailnum) %>% 
+	summarise(count = n(),
+						dist = mean(distance, na.rm = TRUE),
+						delay = mean(arr_delay, na.rm = TRUE)) 
+```
+
+========================================================
+Now with the result you found above, filter the individual planes that had 
+arrival delay greater than 120 minutes.
+
+========================================================
+
+```{r}
+flights %>%  
+	group_by(tailnum) %>% 
+	summarise(count = n(),
+						dist = mean(distance, na.rm = TRUE),
+						delay = mean(arr_delay, na.rm = TRUE)) %>% 
+	filter(delay > 120)
+
+```
+
+========================================================
+Now sort by distance ... 
+
+========================================================
+
+```{r}
+flights %>%  
+	group_by(tailnum) %>% 
+	summarise(count = n(),
+						dist = mean(distance, na.rm = TRUE),
+						delay = mean(arr_delay, na.rm = TRUE)) %>% 
+	filter(delay > 120) %>% 
+	arrange(dist)
+
+```
+
+========================================================
+
+**Example**: Get all not cancelled flights, ie, the flights that have 
+`dep_delay` and `arr_delay`.
+
+**TIP**: You should use the function `is.na()`
+
+========================================================
+
+```{r}
+flights %>% 
+	filter(!is.na(dep_delay), !is.na(arr_delay))
+```
+
+========================================================
+
+**Example**: Which destinations have the most carriers (exclude again the 
+not cancelled flights)?
+
+========================================================
+
+```{r}
+flights %>% 
+	filter(!is.na(dep_delay), !is.na(arr_delay)) %>% 
+	group_by(dest) %>% 
+  summarise(carriers = n_distinct(carrier)) %>% 
+  arrange(desc(carriers))
+```
+
+========================================================
+
+**Example**: Select all columns that starts with "d"
+
+```{r}
+?select
+```
+
+========================================================
+
+```{r}
+flights %>% 
+	select(starts_with("d"))
+```
+
+========================================================  
+
+**Example**: Find the top 10 destinations departing from JFK:
+
+========================================================
+
+```{r}
+flights %>% 
+	filter(origin == "JFK") %>% 
+	group_by(dest) %>% 
+	count(dest) %>% 
+	top_n(10)
+```
+
+========================================================
+
+**Example**: For each month of the year, count the total number of flights and 
+sort in descending order.
+
+========================================================
+
+```{r}
+flights %>%
+    group_by(month) %>%
+    summarise(flight_count = n()) %>%
+    arrange(desc(flight_count))
+
+```
+
+========================================================
+
+**Example**: For each carrier, calculate which two days of the year they had their longest departure delays
+
+
+========================================================
+One way:
+
+```{r}
+flights %>%
+    group_by(carrier) %>%
+    select(month, day, dep_delay) %>%
+    filter(min_rank(desc(dep_delay)) <= 2) %>%
+    arrange(carrier, desc(dep_delay))
+
+```
+
+
+========================================================
+Another way:
+
+```{r}
+flights %>%
+    group_by(carrier) %>%
+    select(month, day, dep_delay) %>%
+    top_n(2) %>%
+    arrange(carrier, desc(dep_delay))
+
+```
+
+
+========================================================
+
+## More Resources:
+
+http://www.rstudio.com/wp-content/uploads/2015/02/data-wrangling-cheatsheet.pdf
+
+

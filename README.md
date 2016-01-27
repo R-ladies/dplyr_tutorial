@@ -22,4 +22,5 @@
 
 ```r
 install.packages("dplyr", dependencies = TRUE)
+install.packages("nycflights13", dependencies = TRUE)
 ```
