@@ -24,3 +24,7 @@
 install.packages("dplyr", dependencies = TRUE)
 install.packages("nycflights13", dependencies = TRUE)
 ```
+
+================================================
+
+**Please provide feedback:** http://bit.ly/rladies_form
